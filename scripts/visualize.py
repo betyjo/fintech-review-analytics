@@ -2,7 +2,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-df = pd.read_csv("data/raw/bank_reviews_processed.csv")
+df = pd.read_csv(
+    "data/raw/bank_reviews_processed.csv"
+)
 
 # -----------------------------
 # Sentiment Distribution
@@ -16,11 +18,16 @@ sns.countplot(
     hue="sentiment_label"
 )
 
-plt.title("Sentiment Distribution by Bank")
+plt.title(
+    "Sentiment Distribution by Bank"
+)
+
 plt.xlabel("Bank")
 plt.ylabel("Review Count")
 
-plt.savefig("data/raw/sentiment_distribution.png")
+plt.savefig(
+    "data/raw/sentiment_distribution.png"
+)
 
 # -----------------------------
 # Rating Distribution
@@ -34,9 +41,13 @@ sns.boxplot(
     y="rating"
 )
 
-plt.title("Rating Distribution by Bank")
+plt.title(
+    "Rating Distribution by Bank"
+)
 
-plt.savefig("data/raw/rating_distribution.png")
+plt.savefig(
+    "data/raw/rating_distribution.png"
+)
 
 # -----------------------------
 # Theme Frequency
@@ -54,6 +65,8 @@ theme_counts.plot(kind="barh")
 
 plt.title("Top Review Themes")
 
-plt.savefig("data/raw/theme_frequency.png")
+plt.savefig(
+    "data/raw/theme_frequency.png"
+)
 
-print("Visualizations saved.")
+print("Plots generated.")
