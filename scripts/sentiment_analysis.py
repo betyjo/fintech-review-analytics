@@ -1,30 +1,41 @@
 import pandas as pd
+import re
+import nltk
+
+from nltk.corpus import stopwords
 from transformers import pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
-import nltk
-import re
 
-nltk.download('stopwords')
+nltk.download("stopwords")
 
-from nltk.corpus import stopwords
+# -----------------------------
+# Load Dataset
+# -----------------------------
 
-# Load data
-df = pd.read_csv("data/raw/bank_reviews_clean.csv")
+df = pd.read_csv(
+    "data/raw/bank_reviews_clean.csv"
+)
 
 # -----------------------------
 # Text Cleaning
 # -----------------------------
 
-stop_words = set(stopwords.words('english'))
+stop_words = set(stopwords.words("english"))
 
 def clean_text(text):
+
     text = str(text).lower()
+
     text = re.sub(r"http\S+", "", text)
     text = re.sub(r"[^a-zA-Z\s]", "", text)
 
     words = text.split()
-    words = [w for w in words if w not in stop_words]
+
+    words = [
+        w for w in words
+        if w not in stop_words
+    ]
 
     return " ".join(words)
 
@@ -39,30 +50,35 @@ classifier = pipeline(
     model="distilbert-base-uncased-finetuned-sst-2-english"
 )
 
-sentiments = []
+labels = []
+scores = []
 
 for text in df["clean_review"]:
+
     try:
+
         result = classifier(text[:512])[0]
 
         label = result["label"]
         score = result["score"]
 
         if label == "POSITIVE":
-            sentiment = "positive"
+            labels.append("positive")
         else:
-            sentiment = "negative"
+            labels.append("negative")
 
-        sentiments.append((sentiment, score))
+        scores.append(score)
 
     except:
-        sentiments.append(("neutral", 0.5))
 
-df["sentiment_label"] = [s[0] for s in sentiments]
-df["sentiment_score"] = [s[1] for s in sentiments]
+        labels.append("neutral")
+        scores.append(0.5)
+
+df["sentiment_label"] = labels
+df["sentiment_score"] = scores
 
 # -----------------------------
-# TF-IDF Theme Extraction
+# Theme Extraction
 # -----------------------------
 
 vectorizer = TfidfVectorizer(
@@ -70,9 +86,10 @@ vectorizer = TfidfVectorizer(
     ngram_range=(1,2)
 )
 
-X = vectorizer.fit_transform(df["clean_review"])
+X = vectorizer.fit_transform(
+    df["clean_review"]
+)
 
-# Cluster reviews into themes
 kmeans = KMeans(
     n_clusters=5,
     random_state=42
@@ -82,21 +99,39 @@ df["theme_cluster"] = kmeans.fit_predict(X)
 
 terms = vectorizer.get_feature_names_out()
 
-theme_names = {}
+theme_map = {}
 
 for i in range(5):
-    center_terms = kmeans.cluster_centers_[i].argsort()[-10:]
-    keywords = [terms[idx] for idx in center_terms]
-    theme_names[i] = ", ".join(keywords[:5])
 
-df["identified_theme"] = df["theme_cluster"].map(theme_names)
+    center = (
+        kmeans.cluster_centers_[i]
+        .argsort()[-10:]
+    )
+
+    keywords = [
+        terms[idx]
+        for idx in center
+    ]
+
+    theme_map[i] = ", ".join(
+        keywords[:5]
+    )
+
+df["identified_theme"] = (
+    df["theme_cluster"]
+    .map(theme_map)
+)
 
 # -----------------------------
-# Save Processed File
+# Save Results
 # -----------------------------
 
 df.reset_index(inplace=True)
-df.rename(columns={"index": "review_id"}, inplace=True)
+
+df.rename(
+    columns={"index":"review_id"},
+    inplace=True
+)
 
 final_df = df[
     [
@@ -118,4 +153,10 @@ final_df.to_csv(
 )
 
 print(final_df.head())
-print(final_df["sentiment_label"].value_counts())
+
+print("\nSentiment Counts:\n")
+
+print(
+    final_df["sentiment_label"]
+    .value_counts()
+)
